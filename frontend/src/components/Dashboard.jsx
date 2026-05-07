@@ -57,7 +57,11 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-slate-950 p-4 lg:p-8">
-      <FallAlert isDetected={showFallAlert} onDismiss={() => setShowFallAlert(false)} />
+      <FallAlert 
+        isDetected={showFallAlert} 
+        onDismiss={() => setShowFallAlert(false)} 
+        gps={current.gps}
+      />
 
       {/* Header */}
       <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
@@ -103,10 +107,10 @@ const Dashboard = () => {
           {/* Stats Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
             <SensorCard 
-              title="Status" 
+              title="System Status" 
               value={current.status?.toUpperCase() || 'OFFLINE'} 
               icon={Activity} 
-              color={current.status === 'walking' ? "bg-emerald-500/10 text-emerald-500" : "bg-slate-500/10 text-slate-400"}
+              color={current.status === 'GREEN' ? "bg-emerald-500/10 text-emerald-500" : (current.status === 'RED' ? "bg-rose-500/10 text-rose-500" : "bg-slate-500/10 text-slate-400")}
               loading={loading}
             />
             <SensorCard 
