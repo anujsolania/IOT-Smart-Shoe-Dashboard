@@ -30,6 +30,7 @@ const sendData = async () => {
       lat: parseFloat(lat.toFixed(6)),
       lng: parseFloat(lng.toFixed(6))
     },
+    mapLink: `https://www.google.com/maps?q=${lat.toFixed(6)},${lng.toFixed(6)}`,
     status: Math.random() > 0.5 ? 'walking' : 'standing'
   };
 

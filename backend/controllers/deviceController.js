@@ -2,7 +2,7 @@ const SensorData = require('../models/SensorData');
 
 exports.postSensorData = async (req, res) => {
   try {
-    const { deviceId, timestamp, distance, rain, acceleration, fallDetected, obstacleDetected, gps, status } = req.body;
+    const { deviceId, timestamp, distance, rain, acceleration, fallDetected, obstacleDetected, gps, status, mapLink } = req.body;
 
     const newData = new SensorData({
       deviceId,
@@ -13,7 +13,8 @@ exports.postSensorData = async (req, res) => {
       fallDetected,
       obstacleDetected,
       gps,
-      status
+      status,
+      mapLink
     });
 
     await newData.save();

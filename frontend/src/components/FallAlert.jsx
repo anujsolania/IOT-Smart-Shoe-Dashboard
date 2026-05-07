@@ -19,7 +19,10 @@ const FallAlert = ({ isDetected, onDismiss, gps }) => {
 
   if (!isDetected) return null;
 
-  const googleMapsUrl = gps ? `https://www.google.com/maps?q=${gps.lat},${gps.lng}` : '#';
+  // UPDATED OFFICIAL API URL WITH 6 DECIMAL PLACES PRECISION
+  const googleMapsUrl = gps 
+    ? `https://www.google.com/maps?q=${gps.lat.toFixed(6)},${gps.lng.toFixed(6)}` 
+    : '#';
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-rose-950/80 backdrop-blur-md animate-flash-red">

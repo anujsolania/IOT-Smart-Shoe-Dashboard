@@ -29,10 +29,11 @@ const sensorDataSchema = new mongoose.Schema({
     lat: Number,
     lng: Number
   },
+  mapLink: String,
   status: {
     type: String,
-    enum: ['standing', 'walking', 'fallen', 'unknown'],
-    default: 'unknown'
+    enum: ['standing', 'walking', 'fallen', 'unknown', 'GREEN', 'RED'],
+    default: 'GREEN'
   }
 }, { timestamps: true });
 

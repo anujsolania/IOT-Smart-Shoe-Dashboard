@@ -1,7 +1,7 @@
 /*
 =========================================
-SMART SHOE - FINAL SIMPLIFIED LOGIC
-RED/GREEN STATUS | GOOGLE MAPS READY
+SMART SHOE - FIXED LOGIC (v5)
+REFINED FALL SENSITIVITY | MAP LINK FIXED
 =========================================
 */
 
@@ -34,7 +34,11 @@ double latestLat = 28.7041;
 double latestLng = 77.1025;
 long distance = 999;
 bool fallDetectedFlag = false;
-bool motorActive = false; 
+bool objectDetectedFlag = false; 
+bool motorActive = false;
+int fallConfirmationCount = 0; 
+
+unsigned long lastVibTriggerTime = 0;
 unsigned long lastDashboardUpdate = 0;
 
 void setup() {
@@ -48,7 +52,7 @@ void setup() {
   gpsSerial.begin(GPS_BAUD, SERIAL_8N1, GPS_RX, GPS_TX);
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) { delay(500); }
-  Serial.println("\nWiFi Connected! Simplified Logic Ready.");
+  Serial.println("\nWiFi Connected! Logic V5 Live.");
 }
 
 void sendData(String status, bool isFall) {
@@ -60,8 +64,9 @@ void sendData(String status, bool isFall) {
     doc["fallDetected"] = isFall;
     doc["gps"]["lat"] = latestLat;
     doc["gps"]["lng"] = latestLng;
-    doc["status"] = status; // RED or GREEN
-
+    doc["status"] = status;
+    String mapLink = "https://www.google.com/maps?q=" + String(latestLat, 6) + "," + String(latestLng, 6);
+    doc["mapLink"] = mapLink;
     String jsonStr; serializeJson(doc, jsonStr);
     http.begin(serverUrl);
     http.addHeader("Content-Type", "application/json");
@@ -71,47 +76,54 @@ void sendData(String status, bool isFall) {
 }
 
 void loop() {
-  // Update GPS
   while (gpsSerial.available() > 0) gps.encode(gpsSerial.read());
   if (gps.location.isValid()) { latestLat = gps.location.lat(); latestLng = gps.location.lng(); }
 
-  // Check Fall
+  // 1. REFINED FALL SENSOR (Confirmation required)
   Wire.beginTransmission(0x68);
   if (Wire.endTransmission() == 0) {
     mpu.getEvent(&a, &g, &temp);
-    if (abs(a.acceleration.x) > 6 || abs(a.acceleration.y) > 6 || (a.acceleration.z > 1 && a.acceleration.z < 6)) {
-      if (!fallDetectedFlag) { 
+    bool thresholdsExceeded = (abs(a.acceleration.x) > 7 || abs(a.acceleration.y) > 7 || (a.acceleration.z > 1 && a.acceleration.z < 5));
+    
+    if (thresholdsExceeded) {
+      fallConfirmationCount++;
+      if (fallConfirmationCount >= 5 && !fallDetectedFlag) { 
         Serial.println("\nFALL DETECTED"); 
-        Serial.println("VIBRATION ON"); 
         fallDetectedFlag = true; 
-        sendData("RED", true);
+        sendData("RED", true); 
       }
-    } else { fallDetectedFlag = false; }
+    } else {
+      fallConfirmationCount = 0;
+      if (fallDetectedFlag) {
+        fallDetectedFlag = false;
+        sendData("GREEN", false);
+      }
+    }
   }
 
-  // Ultrasonic
+  // 2. OBJECT SENSOR
   digitalWrite(trigPin, LOW); delayMicroseconds(2);
   digitalWrite(trigPin, HIGH); delayMicroseconds(10);
   digitalWrite(trigPin, LOW);
   long dur = pulseIn(echoPin, HIGH, 20000);
   distance = (dur == 0) ? 999 : dur / 58.2;
+  objectDetectedFlag = (distance > 0 && distance < 15);
 
-  // Alerts & Vibration
-  if ((distance > 0 && distance < 15) || fallDetectedFlag) {
+  // 3. VIBRATION
+  if (objectDetectedFlag || fallDetectedFlag) {
     digitalWrite(VIB, HIGH);
-    if (!motorActive) {
-      if (distance < 15 && distance > 0) Serial.println("\nOBJECT DETECTED");
-      Serial.println("VIBRATION ON");
-      motorActive = true;
-    }
+    if (!motorActive) { Serial.println("VIBRATION ON"); motorActive = true; }
+    lastVibTriggerTime = millis();
   } else {
-    digitalWrite(VIB, LOW);
-    motorActive = false;
+    if (motorActive && (millis() - lastVibTriggerTime > 200)) {
+      digitalWrite(VIB, LOW);
+      motorActive = false;
+    }
   }
 
-  // Periodic Update (Status logic)
+  // 4. PERIODIC DASHBOARD SYNC
   if (millis() - lastDashboardUpdate > 2000) {
-    String currentStatus = (motorActive || fallDetectedFlag) ? "RED" : "GREEN";
+    String currentStatus = (objectDetectedFlag || fallDetectedFlag) ? "RED" : "GREEN";
     sendData(currentStatus, fallDetectedFlag);
     lastDashboardUpdate = millis();
   }
